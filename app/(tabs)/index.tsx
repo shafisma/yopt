@@ -2,16 +2,19 @@ import { useState } from 'react';
 import { View, Text, TextInput, TouchableOpacity, StyleSheet, ScrollView, Alert, Modal } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
-import { Plus, Brain, ChevronDown, Check } from 'lucide-react-native';
+import { Plus, Brain, ChevronDown, Check, BookOpen, Timer, Zap } from 'lucide-react-native';
 import { MinimalBackground } from '../../components/GradientBackground';
-import { generateQuiz } from '../../services/gemini';
+import { generateQuiz, generateExamQuiz, generateFlashcards } from '../../services/gemini';
 import { saveQuiz } from '../../services/storage';
+import { VoiceInput } from '../../components/VoiceInput';
 
 export default function HomeScreen() {
   const [topic, setTopic] = useState('');
   const [difficulty, setDifficulty] = useState<'easy' | 'medium' | 'hard'>('medium');
+  const [mode, setMode] = useState<'quiz' | 'flashcard' | 'exam'>('quiz');
   const [isGenerating, setIsGenerating] = useState(false);
   const [showDropdown, setShowDropdown] = useState(false);
+  const [showModeSelector, setShowModeSelector] = useState(false);
   const difficulties = [
     { 
       key: 'easy', 
@@ -36,23 +39,57 @@ export default function HomeScreen() {
     },
   ] as const;
 
+  const modes = [
+    {
+      key: 'quiz',
+      label: 'Quiz Mode',
+      description: 'Traditional multiple choice',
+      icon: <Brain size={16} color="#6366f1" strokeWidth={1.5} />,
+      color: '#6366f1'
+    },
+    {
+      key: 'flashcard',
+      label: 'Flashcard Mode',
+      description: 'Study with flashcards',
+      icon: <BookOpen size={16} color="#059669" strokeWidth={1.5} />,
+      color: '#059669'
+    },
+    {
+      key: 'exam',
+      label: 'Exam Mode',
+      description: 'Timed challenge',
+      icon: <Timer size={16} color="#dc2626" strokeWidth={1.5} />,
+      color: '#dc2626'
+    },
+  ] as const;
 
   const selectedDifficulty = difficulties.find(d => d.key === difficulty);
+  const selectedMode = modes.find(m => m.key === mode);
 
-  const handleGenerateQuiz = async () => {
+  const handleGenerate = async () => {
     if (!topic.trim()) {
-      Alert.alert('Error', 'Please enter a topic for your quiz');
+      Alert.alert('Error', 'Please enter a topic');
       return;
     }
 
     setIsGenerating(true);
     try {
-      const quiz = await generateQuiz(topic.trim(), difficulty, 5);
-      await saveQuiz(quiz);
-      router.push(`/quiz/${quiz.id}`);
+      if (mode === 'flashcard') {
+        const flashcards = await generateFlashcards(topic.trim(), difficulty, 10);
+        // Navigate to flashcard mode
+        router.push(`/flashcards?topic=${encodeURIComponent(topic.trim())}&difficulty=${difficulty}`);
+      } else if (mode === 'exam') {
+        const quiz = await generateExamQuiz(topic.trim(), difficulty, 20, 30);
+        await saveQuiz(quiz);
+        router.push(`/quiz/${quiz.id}`);
+      } else {
+        const quiz = await generateQuiz(topic.trim(), difficulty, 5);
+        await saveQuiz(quiz);
+        router.push(`/quiz/${quiz.id}`);
+      }
     } catch (error) {
-      Alert.alert('Error', 'Failed to generate quiz. Please try again.');
-      console.error('Quiz generation error:', error);
+      Alert.alert('Error', 'Failed to generate content. Please try again.');
+      console.error('Generation error:', error);
     } finally {
       setIsGenerating(false);
     }
@@ -61,6 +98,11 @@ export default function HomeScreen() {
   const handleDifficultySelect = (selectedDiff: 'easy' | 'medium' | 'hard') => {
     setDifficulty(selectedDiff);
     setShowDropdown(false);
+  };
+
+  const handleModeSelect = (selectedMode: 'quiz' | 'flashcard' | 'exam') => {
+    setMode(selectedMode);
+    setShowModeSelector(false);
   };
 
   return (
@@ -81,6 +123,7 @@ export default function HomeScreen() {
             <View style={styles.inputContainer}>
               <Text style={styles.label}>What would you like to learn about?</Text>
               <View style={styles.inputWrapper}>
+                <View style={styles.inputWithVoice}>
                 <TextInput
                   style={styles.input}
                   value={topic}
@@ -89,6 +132,10 @@ export default function HomeScreen() {
                   placeholderTextColor="#9ca3af"
                   multiline
                 />
+                  <View style={styles.voiceInputContainer}>
+                    <VoiceInput textToSpeak={topic} showSpeaker={false} />
+                  </View>
+                </View>
                 <TouchableOpacity
                   style={styles.dropdownButton}
                   onPress={() => setShowDropdown(true)}
@@ -109,18 +156,35 @@ export default function HomeScreen() {
                   </View>
                 </TouchableOpacity>
               </View>
+              
+              <View style={styles.modeContainer}>
+                <Text style={styles.modeLabel}>Learning Mode</Text>
+                <TouchableOpacity
+                  style={styles.modeSelector}
+                  onPress={() => setShowModeSelector(true)}
+                  activeOpacity={0.7}
+                >
+                  <View style={styles.modeSelectorContent}>
+                    {selectedMode?.icon}
+                    <Text style={[styles.modeText, { color: selectedMode?.color }]}>
+                      {selectedMode?.label}
+                    </Text>
+                    <ChevronDown size={16} color={selectedMode?.color} strokeWidth={2} />
+                  </View>
+                </TouchableOpacity>
+              </View>
             </View>
 
             <TouchableOpacity
               style={[styles.generateButton, isGenerating && styles.generateButtonDisabled]}
-              onPress={handleGenerateQuiz}
+              onPress={handleGenerate}
               disabled={isGenerating}
               activeOpacity={0.8}
             >
               <View style={styles.generateButtonContent}>
                 <Plus size={20} color="white" strokeWidth={2} />
                 <Text style={styles.generateButtonText}>
-                  {isGenerating ? 'Generating Quiz...' : 'Generate Quiz'}
+                  {isGenerating ? 'Generating...' : `Create ${selectedMode?.label}`}
                 </Text>
               </View>
             </TouchableOpacity>
@@ -173,6 +237,64 @@ export default function HomeScreen() {
                     </View>
                     {difficulty === diff.key && (
                       <View style={[styles.checkContainer, { backgroundColor: diff.color }]}>
+                        <Check size={14} color="white" strokeWidth={2} />
+                      </View>
+                    )}
+                  </View>
+                </TouchableOpacity>
+              ))}
+            </View>
+          </TouchableOpacity>
+        </Modal>
+
+        {/* Mode Selector Modal */}
+        <Modal
+          visible={showModeSelector}
+          transparent={true}
+          animationType="fade"
+          onRequestClose={() => setShowModeSelector(false)}
+        >
+          <TouchableOpacity
+            style={styles.modalOverlay}
+            activeOpacity={1}
+            onPress={() => setShowModeSelector(false)}
+          >
+            <View style={styles.dropdownModal}>
+              <View style={styles.modalHeader}>
+                <Text style={styles.modalTitle}>Choose Learning Mode</Text>
+                <Text style={styles.modalSubtitle}>Select how you want to study</Text>
+              </View>
+              
+              {modes.map((modeOption, index) => (
+                <TouchableOpacity
+                  key={modeOption.key}
+                  style={[
+                    styles.difficultyOption,
+                    mode === modeOption.key && styles.difficultyOptionSelected,
+                    index === modes.length - 1 && styles.lastOption
+                  ]}
+                  onPress={() => handleModeSelect(modeOption.key)}
+                  activeOpacity={0.7}
+                >
+                  <View style={styles.difficultyOptionContent}>
+                    <View style={styles.difficultyOptionLeft}>
+                      <View style={styles.modeIconContainer}>
+                        {modeOption.icon}
+                      </View>
+                      <View>
+                        <Text style={[
+                          styles.difficultyOptionLabel,
+                          { color: modeOption.color }
+                        ]}>
+                          {modeOption.label}
+                        </Text>
+                        <Text style={styles.difficultyOptionDesc}>
+                          {modeOption.description}
+                        </Text>
+                      </View>
+                    </View>
+                    {mode === modeOption.key && (
+                      <View style={[styles.checkContainer, { backgroundColor: modeOption.color }]}>
                         <Check size={14} color="white" strokeWidth={2} />
                       </View>
                     )}
@@ -350,17 +472,25 @@ const styles = StyleSheet.create({
   inputWrapper: {
     position: 'relative',
   },
+  inputWithVoice: {
+    position: 'relative',
+  },
   input: {
     borderWidth: 1,
     borderColor: '#d1d5db',
     borderRadius: 12,
     padding: 16,
-    paddingRight: 130, // Make space for dropdown button
+    paddingRight: 180, // Make space for voice input and dropdown
     fontSize: 16,
     color: '#111827',
     backgroundColor: '#ffffff',
     minHeight: 80,
     textAlignVertical: 'top',
+  },
+  voiceInputContainer: {
+    position: 'absolute',
+    right: 130,
+    top: 12,
   },
   dropdownButton: {
     position: 'absolute',
@@ -396,6 +526,38 @@ const styles = StyleSheet.create({
     width: 6,
     height: 6,
     borderRadius: 3,
+  },
+  modeContainer: {
+    marginTop: 24,
+  },
+  modeLabel: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#111827',
+    marginBottom: 12,
+  },
+  modeSelector: {
+    borderWidth: 1,
+    borderColor: '#d1d5db',
+    borderRadius: 12,
+    padding: 16,
+    backgroundColor: '#ffffff',
+  },
+  modeSelectorContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+  },
+  modeText: {
+    fontSize: 16,
+    fontWeight: '500',
+    flex: 1,
+  },
+  modeIconContainer: {
+    width: 24,
+    height: 24,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   generateButton: {
     backgroundColor: '#111827',

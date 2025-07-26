@@ -16,8 +16,10 @@ export interface Quiz {
   title: string;
   topic: string;
   difficulty: 'easy' | 'medium' | 'hard';
+  mode: 'quiz' | 'flashcard' | 'exam';
   questions: QuizQuestion[];
   createdAt: Date;
+  timeLimit?: number; // in minutes for exam mode
 }
 
 export interface QuizResult {
@@ -28,6 +30,14 @@ export interface QuizResult {
   timeSpent: number;
   analysis: string;
   completedAt: Date;
+  mode: 'quiz' | 'flashcard' | 'exam';
+  timeLimitExceeded?: boolean;
+}
+
+export interface FlashcardData {
+  front: string;
+  back: string;
+  difficulty: 'easy' | 'medium' | 'hard';
 }
 
 export async function generateQuiz(topic: string, difficulty: 'easy' | 'medium' | 'hard', questionCount: number = 5): Promise<Quiz> {
@@ -70,6 +80,7 @@ JSON format:
     return {
       id: Date.now().toString(),
       ...quizData,
+      mode: 'quiz',
       createdAt: new Date(),
     };
   } catch (error) {
@@ -121,4 +132,45 @@ Keep it friendly, motivational, and educational.`;
     console.error('Error analyzing quiz:', error);
     return `Great job completing the quiz! You scored ${score}/${quiz.questions.length} (${percentage.toFixed(1)}%). Keep practicing to improve your knowledge in ${quiz.topic}.`;
   }
+}
+
+export async function generateFlashcards(topic: string, difficulty: 'easy' | 'medium' | 'hard', cardCount: number = 10): Promise<FlashcardData[]> {
+  const model = genAI.getGenerativeModel({ model: 'gemini-2.0-flash' });
+
+  const prompt = `Generate ${cardCount} flashcards about "${topic}" at ${difficulty} level.
+
+STRICT REQUIREMENTS:
+- Return ONLY valid JSON array, no additional text
+- Each flashcard should have a question/term on front and answer/definition on back
+- Make them educational and progressively challenging
+
+JSON format:
+[
+  {
+    "front": "Question or term here",
+    "back": "Answer or definition here",
+    "difficulty": "${difficulty}"
+  }
+]`;
+
+  try {
+    const result = await model.generateContent(prompt);
+    const response = await result.response;
+    const text = response.text();
+    
+    const cleanedText = text.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
+    return JSON.parse(cleanedText);
+  } catch (error) {
+    console.error('Error generating flashcards:', error);
+    throw new Error('Failed to generate flashcards. Please try again.');
+  }
+}
+
+export async function generateExamQuiz(topic: string, difficulty: 'easy' | 'medium' | 'hard', questionCount: number = 20, timeLimit: number = 30): Promise<Quiz> {
+  const quiz = await generateQuiz(topic, difficulty, questionCount);
+  return {
+    ...quiz,
+    mode: 'exam',
+    timeLimit,
+  };
 }

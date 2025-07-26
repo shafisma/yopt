@@ -4,6 +4,8 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useLocalSearchParams, router } from 'expo-router';
 import { ArrowLeft, Clock, Circle, CircleCheck as CheckCircle } from 'lucide-react-native';
 import { MinimalBackground } from '../../components/GradientBackground';
+import { VoiceInput } from '../../components/VoiceInput';
+import { ExamTimer } from '../../components/ExamTimer';
 import { Quiz, QuizQuestion, analyzeQuizResult } from '../../services/gemini';
 import { getQuizById, saveQuizResult } from '../../services/storage';
 
@@ -15,6 +17,7 @@ export default function QuizScreen() {
   const [selectedAnswer, setSelectedAnswer] = useState<number | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [startTime] = useState(Date.now());
+  const [timeUp, setTimeUp] = useState(false);
 
   useEffect(() => {
     loadQuiz();
@@ -62,6 +65,15 @@ export default function QuizScreen() {
     }
   };
 
+  const handleTimeUp = () => {
+    setTimeUp(true);
+    Alert.alert(
+      'Time\'s Up!',
+      'The exam time has expired. Your quiz will be submitted automatically.',
+      [{ text: 'OK', onPress: () => finishQuiz(answers) }]
+    );
+  };
+
   const finishQuiz = async (finalAnswers: number[]) => {
     if (!quiz) return;
 
@@ -80,6 +92,8 @@ export default function QuizScreen() {
         answers: finalAnswers,
         timeSpent,
         analysis,
+        mode: quiz.mode || 'quiz',
+        timeLimitExceeded: timeUp,
         completedAt: new Date(),
       };
 
@@ -127,20 +141,34 @@ export default function QuizScreen() {
             </View>
           </View>
                     
-          <View style={styles.timer}>
-            <Clock size={16} color="#6b7280" strokeWidth={1.5} />
-            <Text style={styles.timerText}>
-              {Math.floor((Date.now() - startTime) / 1000)}s
-            </Text>
-          </View>
+          {quiz.mode === 'exam' && quiz.timeLimit ? (
+            <ExamTimer
+              timeLimit={quiz.timeLimit}
+              onTimeUp={handleTimeUp}
+              isActive={!timeUp}
+            />
+          ) : (
+            <View style={styles.timer}>
+              <Clock size={16} color="#6b7280" strokeWidth={1.5} />
+              <Text style={styles.timerText}>
+                {Math.floor((Date.now() - startTime) / 1000)}s
+              </Text>
+            </View>
+          )}
         </View>
 
         {/* Question Section - Fixed */}
         <View style={styles.questionSection}>
           <View style={styles.questionContainer}>
+            <View style={styles.questionHeader}>
             <Text style={styles.questionNumber}>
-              Question {currentQuestion + 1}
+              Question {currentQuestion + 1} {quiz.mode === 'exam' && '(Exam Mode)'}
             </Text>
+              <VoiceInput 
+                textToSpeak={question.question}
+                showSpeaker={true}
+              />
+            </View>
             <Text style={styles.questionText}>
               {question.question}
             </Text>
@@ -265,13 +293,19 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: '#e2e8f0',
   },
+  questionHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 8,
+  },
   questionNumber: {
     fontSize: 12,
     fontWeight: '600',
     color: '#6366f1',
-    marginBottom: 8,
     letterSpacing: 0.5,
     textTransform: 'uppercase',
+    flex: 1,
   },
   questionText: {
     fontSize: 18,
