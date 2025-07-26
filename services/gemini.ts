@@ -79,7 +79,7 @@ JSON format:
 }
 
 export async function analyzeQuizResult(quiz: Quiz, answers: number[], timeSpent: number): Promise<string> {
-  const model = genAI.getGenerativeModel({ model: 'gemini-pro' });
+  const model = genAI.getGenerativeModel({ model: 'gemini-2.0-flash' });
 
   const score = answers.reduce((acc, answer, index) => {
     return acc + (answer === quiz.questions[index].correctAnswer ? 1 : 0);

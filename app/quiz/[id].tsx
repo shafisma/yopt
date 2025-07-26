@@ -22,7 +22,7 @@ export default function QuizScreen() {
 
   const loadQuiz = async () => {
     if (!id) return;
-    
+        
     try {
       const quizData = await getQuizById(id);
       if (quizData) {
@@ -72,7 +72,7 @@ export default function QuizScreen() {
 
     try {
       const analysis = await analyzeQuizResult(quiz, finalAnswers, timeSpent);
-      
+            
       const result = {
         quizId: quiz.id,
         score,
@@ -108,6 +108,7 @@ export default function QuizScreen() {
   return (
     <MinimalBackground variant="secondary">
       <SafeAreaView style={styles.container}>
+        {/* Fixed Header */}
         <View style={styles.header}>
           <TouchableOpacity
             style={styles.backButton}
@@ -116,7 +117,7 @@ export default function QuizScreen() {
           >
             <ArrowLeft size={24} color="#111827" strokeWidth={1.5} />
           </TouchableOpacity>
-          
+                    
           <View style={styles.progressContainer}>
             <Text style={styles.progressText}>
               {currentQuestion + 1} of {quiz.questions.length}
@@ -125,7 +126,7 @@ export default function QuizScreen() {
               <View style={[styles.progressFill, { width: `${progress}%` }]} />
             </View>
           </View>
-          
+                    
           <View style={styles.timer}>
             <Clock size={16} color="#6b7280" strokeWidth={1.5} />
             <Text style={styles.timerText}>
@@ -134,7 +135,8 @@ export default function QuizScreen() {
           </View>
         </View>
 
-        <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
+        {/* Question Section - Fixed */}
+        <View style={styles.questionSection}>
           <View style={styles.questionContainer}>
             <Text style={styles.questionNumber}>
               Question {currentQuestion + 1}
@@ -143,38 +145,45 @@ export default function QuizScreen() {
               {question.question}
             </Text>
           </View>
+        </View>
 
-          <View style={styles.optionsContainer}>
-            {question.options.map((option, index) => (
-              <TouchableOpacity
-                key={index}
-                style={[
-                  styles.optionButton,
-                  selectedAnswer === index && styles.selectedOption
-                ]}
-                onPress={() => handleAnswerSelect(index)}
-                activeOpacity={0.7}
-              >
-                <View style={styles.optionContent}>
-                  <View style={styles.optionIndicator}>
-                    {selectedAnswer === index ? (
-                      <CheckCircle size={20} color="#111827" strokeWidth={2} />
-                    ) : (
-                      <Circle size={20} color="#d1d5db" strokeWidth={1.5} />
-                    )}
-                  </View>
-                  <Text style={[
-                    styles.optionText,
-                    selectedAnswer === index && styles.selectedOptionText
-                  ]}>
-                    {option}
-                  </Text>
+        {/* Options Section - Scrollable */}
+        <ScrollView 
+          style={styles.optionsScrollView}
+          contentContainerStyle={styles.optionsContainer}
+          showsVerticalScrollIndicator={false}
+          bounces={false}
+        >
+          {question.options.map((option, index) => (
+            <TouchableOpacity
+              key={index}
+              style={[
+                styles.optionButton,
+                selectedAnswer === index && styles.selectedOption
+              ]}
+              onPress={() => handleAnswerSelect(index)}
+              activeOpacity={0.7}
+            >
+              <View style={styles.optionContent}>
+                <View style={styles.optionIndicator}>
+                  {selectedAnswer === index ? (
+                    <CheckCircle size={20} color="#111827" strokeWidth={2} />
+                  ) : (
+                    <Circle size={20} color="#d1d5db" strokeWidth={1.5} />
+                  )}
                 </View>
-              </TouchableOpacity>
-            ))}
-          </View>
+                <Text style={[
+                  styles.optionText,
+                  selectedAnswer === index && styles.selectedOptionText
+                ]}>
+                  {option}
+                </Text>
+              </View>
+            </TouchableOpacity>
+          ))}
         </ScrollView>
 
+        {/* Fixed Footer */}
         <View style={styles.footer}>
           <TouchableOpacity
             style={[
@@ -202,8 +211,9 @@ const styles = StyleSheet.create({
   header: {
     flexDirection: 'row',
     alignItems: 'center',
-    padding: 24,
-    gap: 20,
+    padding: 20,
+    paddingBottom: 16,
+    gap: 16,
     backgroundColor: '#ffffff',
     borderBottomWidth: 1,
     borderBottomColor: '#f3f4f6',
@@ -241,68 +251,90 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: '500',
   },
-  content: {
-    flex: 1,
-    padding: 24,
+  questionSection: {
+    backgroundColor: '#ffffff',
+    paddingHorizontal: 20,
+    paddingVertical: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: '#f3f4f6',
   },
   questionContainer: {
-    backgroundColor: '#ffffff',
-    borderRadius: 16,
-    padding: 32,
-    marginBottom: 32,
+    backgroundColor: '#f8fafc',
+    borderRadius: 12,
+    padding: 20,
     borderWidth: 1,
-    borderColor: '#e5e7eb',
+    borderColor: '#e2e8f0',
   },
   questionNumber: {
-    fontSize: 14,
-    fontWeight: '500',
-    color: '#6b7280',
-    marginBottom: 12,
+    fontSize: 12,
+    fontWeight: '600',
+    color: '#6366f1',
+    marginBottom: 8,
     letterSpacing: 0.5,
+    textTransform: 'uppercase',
   },
   questionText: {
-    fontSize: 20,
+    fontSize: 18,
     fontWeight: '600',
     color: '#111827',
-    lineHeight: 28,
+    lineHeight: 26,
+  },
+  optionsScrollView: {
+    flex: 1,
+    backgroundColor: '#ffffff',
   },
   optionsContainer: {
-    gap: 16,
+    padding: 20,
+    paddingBottom: 40,
+    gap: 12,
   },
   optionButton: {
     backgroundColor: '#ffffff',
     borderRadius: 12,
-    padding: 20,
-    borderWidth: 1,
+    padding: 16,
+    borderWidth: 2,
     borderColor: '#e5e7eb',
+    shadowColor: '#000',
+    shadowOffset: {
+      width: 0,
+      height: 1,
+    },
+    shadowOpacity: 0.05,
+    shadowRadius: 2,
+    elevation: 1,
   },
   selectedOption: {
     borderColor: '#111827',
     backgroundColor: '#f9fafb',
+    shadowColor: '#111827',
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
   },
   optionContent: {
     flexDirection: 'row',
-    alignItems: 'center',
-    gap: 16,
+    alignItems: 'flex-start',
+    gap: 12,
   },
   optionIndicator: {
     width: 24,
     height: 24,
     alignItems: 'center',
     justifyContent: 'center',
+    marginTop: 2,
   },
   optionText: {
     fontSize: 16,
     color: '#374151',
     flex: 1,
-    lineHeight: 22,
+    lineHeight: 24,
   },
   selectedOptionText: {
     color: '#111827',
     fontWeight: '500',
   },
   footer: {
-    padding: 24,
+    padding: 20,
     backgroundColor: '#ffffff',
     borderTopWidth: 1,
     borderTopColor: '#f3f4f6',
@@ -310,11 +342,21 @@ const styles = StyleSheet.create({
   nextButton: {
     backgroundColor: '#111827',
     borderRadius: 12,
-    padding: 20,
+    padding: 18,
     alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
   },
   nextButtonDisabled: {
     backgroundColor: '#d1d5db',
+    shadowOpacity: 0,
+    elevation: 0,
   },
   nextButtonText: {
     color: 'white',
