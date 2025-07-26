@@ -6,9 +6,6 @@
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
     "userInterfaceStyle": "light",
-    "notification": {
-      "vapidPublicKey": "BCCffCr6Q11zgyqRB92r7ZsdsbIpgSPWMgaX4DkmcHnP3lixLGq9q4JQtuVAOtQyFnuPJLWG1smoAIq0ZHnmsx0"
-    },
     "splash": {
       "image": "./assets/images/icon.png",
       "resizeMode": "contain",
