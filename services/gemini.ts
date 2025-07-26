@@ -1,8 +1,7 @@
 import { GoogleGenerativeAI } from '@google/generative-ai';
 
-// Initialize the Google Generative AI client
-const genAI = new GoogleGenerativeAI('AIzaSyCctQ1M-vZ8iRcn8FQ4RT3eJLlvBtw_YO0'); // Replace with your actual API key
-
+const apikey = process.env.GEMINI_API_KEY!;
+const genAI = new GoogleGenerativeAI(apikey); // Replace with your actual API key
 export interface QuizQuestion {
   question: string;
   options: string[];
