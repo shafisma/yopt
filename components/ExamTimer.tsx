@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { View, Text, StyleSheet } from 'react-native';
-import { Clock, AlertTriangle } from 'lucide-react-native';
+import { Clock, TriangleAlert as AlertTriangle } from 'lucide-react-native';
 
 interface ExamTimerProps {
   timeLimit: number; // in minutes
