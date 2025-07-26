@@ -5,14 +5,19 @@ import { useLocalSearchParams, router } from 'expo-router';
 import { ArrowLeft, Trophy, Target, Clock, Brain, Chrome as Home } from 'lucide-react-native';
 import ConfettiCannon from 'react-native-confetti-cannon';
 import { MinimalBackground } from '../../components/GradientBackground';
+import { useTheme } from '../../contexts/ThemeContext';
+import { showBadgeNotification } from '../../services/notifications';
 import { Quiz, QuizResult } from '../../services/gemini';
 import { getQuizById, getQuizResults } from '../../services/storage';
+import { updateUserStats, getUserStats } from '../../services/analytics';
 
 export default function ResultsScreen() {
   const { id, score, total } = useLocalSearchParams<{ id: string; score: string; total: string }>();
   const [quiz, setQuiz] = useState<Quiz | null>(null);
   const [result, setResult] = useState<QuizResult | null>(null);
+  const [newBadges, setNewBadges] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const { theme } = useTheme();
   const confettiRef = useRef<any>();
   const scaleAnim = useRef(new Animated.Value(0)).current;
   const fadeAnim = useRef(new Animated.Value(0)).current;
@@ -20,6 +25,36 @@ export default function ResultsScreen() {
   useEffect(() => {
     loadData();
   }, [id]);
+
+  useEffect(() => {
+    if (quiz && result) {
+      updateStats();
+    }
+  }, [quiz, result]);
+
+  const updateStats = async () => {
+    if (!quiz || !result) return;
+    
+    try {
+      const oldStats = await getUserStats();
+      const updatedStats = await updateUserStats(quiz, result);
+      
+      // Check for new badges
+      const badges = updatedStats.badges.filter(
+        badge => !oldStats.badges.some(oldBadge => oldBadge.id === badge.id)
+      );
+      
+      if (badges.length > 0) {
+        setNewBadges(badges);
+        // Show notifications for new badges
+        badges.forEach(badge => {
+          showBadgeNotification(badge.name, badge.icon);
+        });
+      }
+    } catch (error) {
+      console.error('Error updating stats:', error);
+    }
+  };
 
   useEffect(() => {
     if (result && !isLoading) {
@@ -68,13 +103,13 @@ export default function ResultsScreen() {
 
   if (isLoading || !quiz || !result) {
     return (
-      <MinimalBackground variant="secondary">
+      <View style={[styles.container, { backgroundColor: theme.colors.background }]}>
         <SafeAreaView style={styles.container}>
           <View style={styles.loadingContainer}>
-            <Text style={styles.loadingText}>Loading Results...</Text>
+            <Text style={[styles.loadingText, { color: theme.colors.textSecondary }]}>Loading Results...</Text>
           </View>
         </SafeAreaView>
-      </MinimalBackground>
+      </View>
     );
   }
 
@@ -97,7 +132,7 @@ export default function ResultsScreen() {
   };
 
   return (
-    <MinimalBackground variant="secondary">
+    <View style={[styles.container, { backgroundColor: theme.colors.background }]}>
       <SafeAreaView style={styles.container}>
         <ConfettiCannon
           ref={confettiRef}
@@ -109,19 +144,33 @@ export default function ResultsScreen() {
           colors={['#111827', '#374151', '#6b7280', '#059669', '#d97706']}
         />
         
-        <View style={styles.header}>
+        <View style={[styles.header, { backgroundColor: theme.colors.surface, borderBottomColor: theme.colors.border }]}>
           <TouchableOpacity
             style={styles.backButton}
             onPress={() => router.back()}
             activeOpacity={0.7}
           >
-            <ArrowLeft size={24} color="#111827" strokeWidth={1.5} />
+            <ArrowLeft size={24} color={theme.colors.text} strokeWidth={1.5} />
           </TouchableOpacity>
-          <Text style={styles.headerTitle}>Quiz Results</Text>
+          <Text style={[styles.headerTitle, { color: theme.colors.text }]}>Quiz Results</Text>
           <View style={styles.placeholder} />
         </View>
 
-        <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
+        <ScrollView style={[styles.content, { backgroundColor: theme.colors.background }]} showsVerticalScrollIndicator={false}>
+          {/* New Badges Notification */}
+          {newBadges.length > 0 && (
+            <View style={[styles.newBadgesContainer, { backgroundColor: theme.colors.accent }]}>
+              <Text style={styles.newBadgesTitle}>🎉 New Badges Unlocked!</Text>
+              <View style={styles.newBadgesList}>
+                {newBadges.map((badge, index) => (
+                  <Text key={index} style={styles.newBadgeText}>
+                    {badge.icon} {badge.name}
+                  </Text>
+                ))}
+              </View>
+            </View>
+          )}
+
           <Animated.View
             style={[
               styles.scoreContainer,
@@ -131,57 +180,57 @@ export default function ResultsScreen() {
               },
             ]}
           >
-            <View style={styles.scoreCard}>
+            <View style={[styles.scoreCard, { backgroundColor: theme.colors.surface, borderColor: theme.colors.border }]}>
               <Trophy size={48} color={getScoreColor(percentage)} strokeWidth={1.5} />
-              <Text style={styles.performanceMessage}>
+              <Text style={[styles.performanceMessage, { color: theme.colors.text }]}>
                 {getPerformanceMessage(percentage)}
               </Text>
-              <Text style={styles.scoreText}>
+              <Text style={[styles.scoreText, { color: theme.colors.text }]}>
                 {result.score}/{result.totalQuestions}
               </Text>
-              <Text style={styles.percentageText}>
+              <Text style={[styles.percentageText, { color: theme.colors.textSecondary }]}>
                 {percentage.toFixed(0)}% Correct
               </Text>
             </View>
           </Animated.View>
 
           <View style={styles.statsContainer}>
-            <View style={styles.statCard}>
+            <View style={[styles.statCard, { backgroundColor: theme.colors.surface, borderColor: theme.colors.border }]}>
               <Target size={24} color="#059669" strokeWidth={1.5} />
-              <Text style={styles.statValue}>{result.score}</Text>
-              <Text style={styles.statLabel}>Correct</Text>
+              <Text style={[styles.statValue, { color: theme.colors.text }]}>{result.score}</Text>
+              <Text style={[styles.statLabel, { color: theme.colors.textSecondary }]}>Correct</Text>
             </View>
             
-            <View style={styles.statCard}>
+            <View style={[styles.statCard, { backgroundColor: theme.colors.surface, borderColor: theme.colors.border }]}>
               <Clock size={24} color="#d97706" strokeWidth={1.5} />
-              <Text style={styles.statValue}>
+              <Text style={[styles.statValue, { color: theme.colors.text }]}>
                 {timeSpentMinutes}:{timeSpentSeconds.toString().padStart(2, '0')}
               </Text>
-              <Text style={styles.statLabel}>Time</Text>
+              <Text style={[styles.statLabel, { color: theme.colors.textSecondary }]}>Time</Text>
             </View>
             
-            <View style={styles.statCard}>
+            <View style={[styles.statCard, { backgroundColor: theme.colors.surface, borderColor: theme.colors.border }]}>
               <Brain size={24} color="#6366f1" strokeWidth={1.5} />
-              <Text style={styles.statValue}>{quiz.difficulty}</Text>
-              <Text style={styles.statLabel}>Level</Text>
+              <Text style={[styles.statValue, { color: theme.colors.text }]}>{quiz.difficulty}</Text>
+              <Text style={[styles.statLabel, { color: theme.colors.textSecondary }]}>Level</Text>
             </View>
           </View>
 
           <View style={styles.analysisContainer}>
-            <Text style={styles.analysisTitle}>Performance Analysis</Text>
-            <View style={styles.analysisCard}>
-              <Text style={styles.analysisText}>{result.analysis}</Text>
+            <Text style={[styles.analysisTitle, { color: theme.colors.text }]}>Performance Analysis</Text>
+            <View style={[styles.analysisCard, { backgroundColor: theme.colors.surface, borderColor: theme.colors.border }]}>
+              <Text style={[styles.analysisText, { color: theme.colors.text }]}>{result.analysis}</Text>
             </View>
           </View>
 
           <View style={styles.questionReview}>
-            <Text style={styles.reviewTitle}>Question Review</Text>
+            <Text style={[styles.reviewTitle, { color: theme.colors.text }]}>Question Review</Text>
             {quiz.questions.map((question, index) => {
               const isCorrect = result.answers[index] === question.correctAnswer;
               return (
-                <View key={index} style={styles.reviewCard}>
+                <View key={index} style={[styles.reviewCard, { backgroundColor: theme.colors.surface, borderColor: theme.colors.border }]}>
                   <View style={styles.reviewHeader}>
-                    <Text style={styles.reviewQuestionNumber}>Q{index + 1}</Text>
+                    <Text style={[styles.reviewQuestionNumber, { color: theme.colors.textSecondary }]}>Q{index + 1}</Text>
                     <View style={[
                       styles.reviewBadge,
                       { 
@@ -193,19 +242,19 @@ export default function ResultsScreen() {
                       </Text>
                     </View>
                   </View>
-                  <Text style={styles.reviewQuestion}>{question.question}</Text>
+                  <Text style={[styles.reviewQuestion, { color: theme.colors.text }]}>{question.question}</Text>
                   
                   {!isCorrect && (
                     <View style={styles.reviewAnswers}>
-                      <Text style={styles.reviewAnswerLabel}>Your Answer:</Text>
-                      <Text style={styles.reviewWrongAnswer}>
+                      <Text style={[styles.reviewAnswerLabel, { color: theme.colors.textSecondary }]}>Your Answer:</Text>
+                      <Text style={[styles.reviewWrongAnswer, { color: theme.colors.error }]}>
                         {question.options[result.answers[index]]}
                       </Text>
-                      <Text style={styles.reviewAnswerLabel}>Correct Answer:</Text>
-                      <Text style={styles.reviewCorrectAnswer}>
+                      <Text style={[styles.reviewAnswerLabel, { color: theme.colors.textSecondary }]}>Correct Answer:</Text>
+                      <Text style={[styles.reviewCorrectAnswer, { color: theme.colors.success }]}>
                         {question.options[question.correctAnswer]}
                       </Text>
-                      <Text style={styles.reviewExplanation}>{question.explanation}</Text>
+                      <Text style={[styles.reviewExplanation, { color: theme.colors.textSecondary }]}>{question.explanation}</Text>
                     </View>
                   )}
                 </View>
@@ -214,20 +263,20 @@ export default function ResultsScreen() {
           </View>
         </ScrollView>
 
-        <View style={styles.footer}>
+        <View style={[styles.footer, { backgroundColor: theme.colors.surface, borderTopColor: theme.colors.border }]}>
           <TouchableOpacity
-            style={styles.homeButton}
+            style={[styles.homeButton, { backgroundColor: theme.colors.primary }]}
             onPress={() => router.push('/')}
             activeOpacity={0.8}
           >
             <View style={styles.homeButtonContent}>
-              <Home size={20} color="white" strokeWidth={1.5} />
-              <Text style={styles.homeButtonText}>Back to Home</Text>
+              <Home size={20} color={theme.colors.background} strokeWidth={1.5} />
+              <Text style={[styles.homeButtonText, { color: theme.colors.background }]}>Back to Home</Text>
             </View>
           </TouchableOpacity>
         </View>
       </SafeAreaView>
-    </MinimalBackground>
+    </View>
   );
 }
 
@@ -240,15 +289,12 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
     padding: 24,
-    backgroundColor: '#ffffff',
     borderBottomWidth: 1,
-    borderBottomColor: '#f3f4f6',
   },
   backButton: {
     padding: 8,
   },
   headerTitle: {
-    color: '#111827',
     fontSize: 18,
     fontWeight: '600',
   },
@@ -259,12 +305,33 @@ const styles = StyleSheet.create({
     flex: 1,
     padding: 24,
   },
+  newBadgesContainer: {
+    margin: 24,
+    borderRadius: 16,
+    padding: 20,
+    alignItems: 'center',
+  },
+  newBadgesTitle: {
+    color: '#ffffff',
+    fontSize: 18,
+    fontWeight: '700',
+    marginBottom: 12,
+  },
+  newBadgesList: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 12,
+  },
+  newBadgeText: {
+    color: '#ffffff',
+    fontSize: 14,
+    fontWeight: '600',
+  },
   scoreContainer: {
     alignItems: 'center',
     marginBottom: 32,
   },
   scoreCard: {
-    backgroundColor: '#ffffff',
     borderRadius: 20,
     padding: 40,
     alignItems: 'center',
@@ -273,7 +340,6 @@ const styles = StyleSheet.create({
     borderColor: '#e5e7eb',
   },
   performanceMessage: {
-    color: '#111827',
     fontSize: 24,
     fontWeight: '600',
     marginTop: 16,
@@ -281,13 +347,11 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
   scoreText: {
-    color: '#111827',
     fontSize: 36,
     fontWeight: '700',
     marginBottom: 8,
   },
   percentageText: {
-    color: '#6b7280',
     fontSize: 16,
     fontWeight: '500',
   },
@@ -298,7 +362,6 @@ const styles = StyleSheet.create({
   },
   statCard: {
     flex: 1,
-    backgroundColor: '#ffffff',
     borderRadius: 16,
     padding: 24,
     alignItems: 'center',
@@ -309,24 +372,20 @@ const styles = StyleSheet.create({
   statValue: {
     fontSize: 18,
     fontWeight: '600',
-    color: '#111827',
   },
   statLabel: {
     fontSize: 13,
     fontWeight: '500',
-    color: '#6b7280',
   },
   analysisContainer: {
     marginBottom: 32,
   },
   analysisTitle: {
-    color: '#111827',
     fontSize: 18,
     fontWeight: '600',
     marginBottom: 16,
   },
   analysisCard: {
-    backgroundColor: '#ffffff',
     borderRadius: 16,
     padding: 24,
     borderWidth: 1,
@@ -335,19 +394,16 @@ const styles = StyleSheet.create({
   analysisText: {
     fontSize: 15,
     lineHeight: 24,
-    color: '#374151',
   },
   questionReview: {
     marginBottom: 100,
   },
   reviewTitle: {
-    color: '#111827',
     fontSize: 18,
     fontWeight: '600',
     marginBottom: 20,
   },
   reviewCard: {
-    backgroundColor: '#ffffff',
     borderRadius: 16,
     padding: 24,
     marginBottom: 16,
@@ -363,7 +419,6 @@ const styles = StyleSheet.create({
   reviewQuestionNumber: {
     fontSize: 14,
     fontWeight: '600',
-    color: '#6b7280',
   },
   reviewBadge: {
     paddingHorizontal: 12,
@@ -378,7 +433,6 @@ const styles = StyleSheet.create({
   reviewQuestion: {
     fontSize: 16,
     fontWeight: '500',
-    color: '#111827',
     marginBottom: 16,
     lineHeight: 22,
   },
@@ -388,21 +442,17 @@ const styles = StyleSheet.create({
   reviewAnswerLabel: {
     fontSize: 13,
     fontWeight: '500',
-    color: '#6b7280',
   },
   reviewWrongAnswer: {
     fontSize: 14,
-    color: '#dc2626',
     fontWeight: '500',
   },
   reviewCorrectAnswer: {
     fontSize: 14,
-    color: '#059669',
     fontWeight: '500',
   },
   reviewExplanation: {
     fontSize: 13,
-    color: '#6b7280',
     lineHeight: 20,
     fontStyle: 'italic',
   },
@@ -412,12 +462,9 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     padding: 24,
-    backgroundColor: '#ffffff',
     borderTopWidth: 1,
-    borderTopColor: '#f3f4f6',
   },
   homeButton: {
-    backgroundColor: '#111827',
     borderRadius: 12,
     overflow: 'hidden',
   },
@@ -429,7 +476,6 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   homeButtonText: {
-    color: 'white',
     fontSize: 16,
     fontWeight: '600',
   },
@@ -439,7 +485,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   loadingText: {
-    color: '#6b7280',
     fontSize: 18,
     fontWeight: '500',
   },

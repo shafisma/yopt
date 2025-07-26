@@ -1,10 +1,14 @@
 import { View, Text, TouchableOpacity, StyleSheet, ScrollView, Alert } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { Trash2, Info, Mail, Shield, Star } from 'lucide-react-native';
+import { Trash2, Info, Mail, Shield, Star, Moon, Sun, Type, Contrast, Bell } from 'lucide-react-native';
 import { MinimalBackground } from '../../components/GradientBackground';
+import { useTheme } from '../../contexts/ThemeContext';
+import { ThemeMode, FontSize, ContrastMode } from '../../services/theme';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 export default function SettingsScreen() {
+  const { theme, settings, updateTheme } = useTheme();
+
   const handleClearData = () => {
     Alert.alert(
       'Clear All Data',
@@ -25,6 +29,18 @@ export default function SettingsScreen() {
         },
       ]
     );
+  };
+
+  const handleThemeChange = (mode: ThemeMode) => {
+    updateTheme({ mode });
+  };
+
+  const handleFontSizeChange = (fontSize: FontSize) => {
+    updateTheme({ fontSize });
+  };
+
+  const handleContrastChange = (contrast: ContrastMode) => {
+    updateTheme({ contrast });
   };
 
   const handleAbout = () => {
@@ -60,70 +76,136 @@ export default function SettingsScreen() {
   };
 
   return (
-    <MinimalBackground variant="primary">
+    <View style={[styles.container, { backgroundColor: theme.colors.background }]}>
       <SafeAreaView style={styles.container}>
-        <View style={styles.header}>
-          <Text style={styles.title}>Settings</Text>
-          <Text style={styles.subtitle}>Manage your app preferences</Text>
+        <View style={[styles.header, { backgroundColor: theme.colors.background }]}>
+          <Text style={[styles.title, { color: theme.colors.text }]}>Settings</Text>
+          <Text style={[styles.subtitle, { color: theme.colors.textSecondary }]}>Manage your app preferences</Text>
         </View>
 
-        <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
+        <ScrollView style={[styles.content, { backgroundColor: theme.colors.surface }]} showsVerticalScrollIndicator={false}>
           <View style={styles.section}>
-            <Text style={styles.sectionTitle}>About</Text>
+            <Text style={[styles.sectionTitle, { color: theme.colors.text }]}>Appearance</Text>
             
-            <TouchableOpacity style={styles.settingItem} onPress={handleAbout} activeOpacity={0.7}>
+            <View style={[styles.settingGroup, { backgroundColor: theme.colors.background, borderColor: theme.colors.border }]}>
+              <Text style={[styles.groupTitle, { color: theme.colors.text }]}>Theme</Text>
+              <View style={styles.optionRow}>
+                <TouchableOpacity
+                  style={[styles.optionButton, settings.mode === 'light' && { backgroundColor: theme.colors.accent }]}
+                  onPress={() => handleThemeChange('light')}
+                >
+                  <Sun size={16} color={settings.mode === 'light' ? '#ffffff' : theme.colors.textSecondary} />
+                  <Text style={[styles.optionText, { color: settings.mode === 'light' ? '#ffffff' : theme.colors.textSecondary }]}>Light</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={[styles.optionButton, settings.mode === 'dark' && { backgroundColor: theme.colors.accent }]}
+                  onPress={() => handleThemeChange('dark')}
+                >
+                  <Moon size={16} color={settings.mode === 'dark' ? '#ffffff' : theme.colors.textSecondary} />
+                  <Text style={[styles.optionText, { color: settings.mode === 'dark' ? '#ffffff' : theme.colors.textSecondary }]}>Dark</Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+
+            <View style={[styles.settingGroup, { backgroundColor: theme.colors.background, borderColor: theme.colors.border }]}>
+              <Text style={[styles.groupTitle, { color: theme.colors.text }]}>Font Size</Text>
+              <View style={styles.optionRow}>
+                <TouchableOpacity
+                  style={[styles.optionButton, settings.fontSize === 'small' && { backgroundColor: theme.colors.accent }]}
+                  onPress={() => handleFontSizeChange('small')}
+                >
+                  <Text style={[styles.optionText, { color: settings.fontSize === 'small' ? '#ffffff' : theme.colors.textSecondary }]}>Small</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={[styles.optionButton, settings.fontSize === 'medium' && { backgroundColor: theme.colors.accent }]}
+                  onPress={() => handleFontSizeChange('medium')}
+                >
+                  <Text style={[styles.optionText, { color: settings.fontSize === 'medium' ? '#ffffff' : theme.colors.textSecondary }]}>Medium</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={[styles.optionButton, settings.fontSize === 'large' && { backgroundColor: theme.colors.accent }]}
+                  onPress={() => handleFontSizeChange('large')}
+                >
+                  <Text style={[styles.optionText, { color: settings.fontSize === 'large' ? '#ffffff' : theme.colors.textSecondary }]}>Large</Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+
+            <View style={[styles.settingGroup, { backgroundColor: theme.colors.background, borderColor: theme.colors.border }]}>
+              <Text style={[styles.groupTitle, { color: theme.colors.text }]}>Contrast</Text>
+              <View style={styles.optionRow}>
+                <TouchableOpacity
+                  style={[styles.optionButton, settings.contrast === 'normal' && { backgroundColor: theme.colors.accent }]}
+                  onPress={() => handleContrastChange('normal')}
+                >
+                  <Text style={[styles.optionText, { color: settings.contrast === 'normal' ? '#ffffff' : theme.colors.textSecondary }]}>Normal</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={[styles.optionButton, settings.contrast === 'high' && { backgroundColor: theme.colors.accent }]}
+                  onPress={() => handleContrastChange('high')}
+                >
+                  <Text style={[styles.optionText, { color: settings.contrast === 'high' ? '#ffffff' : theme.colors.textSecondary }]}>High</Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+          </View>
+
+          <View style={styles.section}>
+            <Text style={[styles.sectionTitle, { color: theme.colors.text }]}>About</Text>
+            
+            <TouchableOpacity style={[styles.settingItem, { backgroundColor: theme.colors.background, borderColor: theme.colors.border }]} onPress={handleAbout} activeOpacity={0.7}>
               <View style={[styles.settingIcon, { backgroundColor: '#eef2ff' }]}>
                 <Info size={20} color="#6366f1" strokeWidth={1.5} />
               </View>
-              <Text style={styles.settingText}>About AI Quiz Master</Text>
+              <Text style={[styles.settingText, { color: theme.colors.text }]}>About AI Quiz Master</Text>
             </TouchableOpacity>
 
-            <TouchableOpacity style={styles.settingItem} onPress={handleRate} activeOpacity={0.7}>
+            <TouchableOpacity style={[styles.settingItem, { backgroundColor: theme.colors.background, borderColor: theme.colors.border }]} onPress={handleRate} activeOpacity={0.7}>
               <View style={[styles.settingIcon, { backgroundColor: '#fef3c7' }]}>
                 <Star size={20} color="#d97706" strokeWidth={1.5} />
               </View>
-              <Text style={styles.settingText}>Rate Our App</Text>
+              <Text style={[styles.settingText, { color: theme.colors.text }]}>Rate Our App</Text>
             </TouchableOpacity>
           </View>
 
           <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Support</Text>
+            <Text style={[styles.sectionTitle, { color: theme.colors.text }]}>Support</Text>
             
-            <TouchableOpacity style={styles.settingItem} onPress={handleContact} activeOpacity={0.7}>
+            <TouchableOpacity style={[styles.settingItem, { backgroundColor: theme.colors.background, borderColor: theme.colors.border }]} onPress={handleContact} activeOpacity={0.7}>
               <View style={[styles.settingIcon, { backgroundColor: '#d1fae5' }]}>
                 <Mail size={20} color="#059669" strokeWidth={1.5} />
               </View>
-              <Text style={styles.settingText}>Contact Us</Text>
+              <Text style={[styles.settingText, { color: theme.colors.text }]}>Contact Us</Text>
             </TouchableOpacity>
 
-            <TouchableOpacity style={styles.settingItem} onPress={handlePrivacy} activeOpacity={0.7}>
+            <TouchableOpacity style={[styles.settingItem, { backgroundColor: theme.colors.background, borderColor: theme.colors.border }]} onPress={handlePrivacy} activeOpacity={0.7}>
               <View style={[styles.settingIcon, { backgroundColor: '#f3e8ff' }]}>
                 <Shield size={20} color="#8b5cf6" strokeWidth={1.5} />
               </View>
-              <Text style={styles.settingText}>Privacy Policy</Text>
+              <Text style={[styles.settingText, { color: theme.colors.text }]}>Privacy Policy</Text>
             </TouchableOpacity>
           </View>
 
           <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Data</Text>
+            <Text style={[styles.sectionTitle, { color: theme.colors.text }]}>Data</Text>
             
-            <TouchableOpacity style={styles.settingItem} onPress={handleClearData} activeOpacity={0.7}>
+            <TouchableOpacity style={[styles.settingItem, { backgroundColor: theme.colors.background, borderColor: theme.colors.border }]} onPress={handleClearData} activeOpacity={0.7}>
               <View style={[styles.settingIcon, { backgroundColor: '#fee2e2' }]}>
                 <Trash2 size={20} color="#dc2626" strokeWidth={1.5} />
               </View>
-              <Text style={[styles.settingText, { color: '#dc2626' }]}>Clear All Data</Text>
+              <Text style={[styles.settingText, { color: theme.colors.error }]}>Clear All Data</Text>
             </TouchableOpacity>
           </View>
 
           <View style={styles.footer}>
-            <Text style={styles.footerText}>AI Quiz Master v1.0.0</Text>
-            <Text style={styles.footerSubtext}>
+            <Text style={[styles.footerText, { color: theme.colors.textSecondary }]}>AI Quiz Master v1.0.0</Text>
+            <Text style={[styles.footerSubtext, { color: theme.colors.textSecondary }]}>
               Powered by Google Gemini AI
             </Text>
           </View>
         </ScrollView>
       </SafeAreaView>
-    </MinimalBackground>
+    </View>
   );
 }
 
@@ -149,7 +231,6 @@ const styles = StyleSheet.create({
   },
   content: {
     flex: 1,
-    backgroundColor: '#ffffff',
     borderTopLeftRadius: 24,
     borderTopRightRadius: 24,
     paddingTop: 32,
@@ -167,16 +248,43 @@ const styles = StyleSheet.create({
     color: '#111827',
     marginBottom: 20,
   },
+  settingGroup: {
+    borderRadius: 12,
+    padding: 16,
+    marginBottom: 12,
+    borderWidth: 1,
+  },
+  groupTitle: {
+    fontSize: 14,
+    fontWeight: '600',
+    marginBottom: 12,
+  },
+  optionRow: {
+    flexDirection: 'row',
+    gap: 8,
+  },
+  optionButton: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    borderRadius: 8,
+    gap: 6,
+  },
+  optionText: {
+    fontSize: 12,
+    fontWeight: '500',
+  },
   settingItem: {
     flexDirection: 'row',
     alignItems: 'center',
     paddingVertical: 16,
     paddingHorizontal: 20,
-    backgroundColor: '#f9fafb',
     borderRadius: 12,
     marginBottom: 12,
     borderWidth: 1,
-    borderColor: '#e5e7eb',
   },
   settingIcon: {
     width: 40,
@@ -189,7 +297,6 @@ const styles = StyleSheet.create({
   settingText: {
     fontSize: 16,
     fontWeight: '500',
-    color: '#374151',
   },
   footer: {
     alignItems: 'center',
@@ -199,11 +306,9 @@ const styles = StyleSheet.create({
   footerText: {
     fontSize: 14,
     fontWeight: '500',
-    color: '#9ca3af',
     marginBottom: 4,
   },
   footerSubtext: {
     fontSize: 13,
-    color: '#d1d5db',
   },
 });
